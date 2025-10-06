@@ -11,6 +11,7 @@ import { requestsRouter } from './routes/requests.js';
 import { authRouter } from './auth.js';
 import { requireAssistOrGuest, enforceDeviceFreshness } from './auth-mw.js';
 
+const PORT = process.env.PORT || 3001;
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
@@ -34,3 +35,8 @@ app.use('/api', requestsRouter);
 const port = process.env.PORT || 3001;
 app.listen(port, () => console.log(`API lista en http://0.0.0.0:${port}`));
 export default app;
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`API lista en http://0.0.0.0:${PORT}`);
+  });
+}
