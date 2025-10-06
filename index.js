@@ -32,7 +32,7 @@ app.use('/api/products', requireAssistOrGuest, enforceDeviceFreshness);
 app.use('/api', productsRouter);
 app.use('/api', requestsRouter);
 
-app.listen(PORT, () => console.log(`API lista en http://0.0.0.0:${PORT}`));
+// Solo iniciar el servidor si no estamos corriendo pruebas
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`API lista en http://0.0.0.0:${PORT}`);
