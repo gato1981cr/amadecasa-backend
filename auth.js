@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import { pool } from './db.js';
 import { sendTelegram } from './notify.js';
+import { createApproval } from './utils/approvals.js';
 
 export const authRouter = Router();
 
@@ -126,4 +127,101 @@ authRouter.get('/auth/status', async (req, res) => {
   const diffDays = last ? Math.floor((Date.now() - last.getTime()) / (1000*60*60*24)) : Infinity;
   const valid = diffDays < SESSION_DAYS;
   return res.json({ approved: true, valid, last_login: d.last_login });
+});
+
+/**
+ * GET /api/auth/approve?token=...
+ * Marca el token como usado y autoriza el dispositivo (devices.approved=1, approved_at=NOW()).
+ */
+authRouter.get('/approve', async (req, res) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).send('Falta token');
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // 1) Buscar el token
+    const [rows] = await conn.query(
+      'SELECT id, device_id, owner_name, role, expires_at, used, created_at FROM approvals WHERE token = ?',
+      [token]
+    );
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(400).send('Token inválido');
+    }
+    const a = rows[0];
+
+    // 2) Validaciones
+    if (a.used) {
+      await conn.rollback();
+      return res.status(409).send('Este enlace ya fue utilizado');
+    }
+    if (new Date(a.expires_at) < new Date()) {
+      await conn.rollback();
+      return res.status(410).send('El enlace ha expirado');
+    }
+
+    // 3) Autorizar/actualizar el dispositivo (upsert por unique key device_id+owner_name+role)
+    await conn.query(
+      `INSERT INTO devices (device_id, owner_name, role, display_name, user_agent, approved, approved_at, last_login, created_at)
+       VALUES (?, ?, ?, NULL, 'telegram-approval', 1, NOW(), NOW(), NOW())
+       ON DUPLICATE KEY UPDATE approved=1, approved_at=NOW(), last_login=NOW()`,
+      [a.device_id, a.owner_name, a.role]
+    );
+
+    // 4) Marcar el approval como usado
+    await conn.query('UPDATE approvals SET used = 1 WHERE id = ?', [a.id]);
+
+    await conn.commit();
+
+    // HTML simple (puedes cambiar a redirect a tu frontend)
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(`
+      <html><body style="font-family: sans-serif">
+        <h2>✅ Dispositivo aprobado</h2>
+        <p>El dispositivo <b>${a.device_id}</b> para <b>${a.owner_name}</b> (${a.role}) ya puede iniciar sesión.</p>
+        <p>Ahora puedes volver a la aplicación y presionar <i>“Ya aprobé”</i> o reintentar el login.</p>
+      </body></html>
+    `);
+  } catch (err) {
+    await conn.rollback();
+    console.error('approve error:', err);
+    return res.status(500).send('Error interno');
+  } finally {
+    conn.release();
+  }
+});
+
+/**
+ * GET /api/auth/deny?token=...
+ * Invalida el token y NO autoriza el dispositivo.
+ */
+authRouter.get('/deny', async (req, res) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).send('Falta token');
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, used FROM approvals WHERE token = ?',
+      [token]
+    );
+    if (!rows.length) return res.status(400).send('Token inválido');
+
+    const a = rows[0];
+    if (a.used) return res.status(409).send('Este enlace ya fue utilizado');
+
+    await pool.query('UPDATE approvals SET used = 1 WHERE id = ?', [a.id]);
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(`
+      <html><body style="font-family: sans-serif">
+        <h2>🚫 Acceso denegado</h2>
+        <p>El enlace fue marcado como <b>denegado</b>. El dispositivo no fue autorizado.</p>
+      </body></html>
+    `);
+  } catch (err) {
+    console.error('deny error:', err);
+    return res.status(500).send('Error interno');
+  }
 });

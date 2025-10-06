@@ -163,38 +163,19 @@ requestsRouter.get('/requests/:id', requireAdminLocal, async (req, res) => {
  * GET /api/requests/export
  * Descarga JSON con todas las solicitudes + ítems (solo admin).
  */
+
+
 requestsRouter.get('/requests/export', requireAdminLocal, async (req, res) => {
-  try {
-    const [requests] = await pool.query(
-      'SELECT id, requester, created_at FROM requests ORDER BY created_at DESC'
-    );
+  const [reqs] = await pool.query('SELECT * FROM requests ORDER BY created_at DESC');
+  const [items] = await pool.query('SELECT * FROM request_items ORDER BY id ASC');
 
-    let items = [];
-    if (requests.length) {
-      const ids = requests.map(r => r.id);
-      const placeholders = ids.map(() => '?').join(',');
-      const [rows] = await pool.query(
-        `SELECT id, request_id, product_id, name, quantity, unit, notes
-         FROM request_items
-         WHERE request_id IN (${placeholders})`,
-        ids
-      );
-      items = rows;
-    }
+  const byId = new Map();
+  for (const r of reqs) byId.set(r.id, { ...r, items: [] });
+  for (const it of items) byId.get(it.request_id)?.items.push(it);
 
-    const byReq = {};
-    for (const it of items) {
-      if (!byReq[it.request_id]) byReq[it.request_id] = [];
-      byReq[it.request_id].push(it);
-    }
-
-    const out = requests.map(r => ({ ...r, items: byReq[r.id] || [] }));
-
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="solicitudes.json"');
-    res.send(JSON.stringify(out, null, 2));
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'DB error' });
-  }
+  const out = Array.from(byId.values());
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="solicitudes.json"');
+  res.status(200).send(JSON.stringify(out, null, 2));
 });
+
