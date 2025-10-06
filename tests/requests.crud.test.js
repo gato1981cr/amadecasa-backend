@@ -2,6 +2,21 @@ import { describe, it, expect } from 'vitest'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
 import app from '../index.js'
+import { pool } from '../db.js'   // 👈 usamos el pool real para preparar la DB
+
+// 👇 Antes de las pruebas, deja el dispositivo aprobado y vigente
+//    (esto satisface enforceDeviceFreshness en tu middleware)
+beforeAll(async () => {
+    await pool.query(
+      `DELETE FROM devices WHERE device_id=:deviceId AND owner_name=:name AND role=:role`,
+      { deviceId: 'test-device-02', name: 'Johan', role: 'assistant' }
+    )
+    await pool.query(
+      `INSERT INTO devices (device_id, owner_name, role, user_agent, approved, last_login)
+       VALUES (:deviceId, :name, :role, 'vitest', 1, NOW())`,
+      { deviceId: 'test-device-02', name: 'Johan', role: 'assistant' }
+    )
+  })
 
 describe('Requests API - flujo básico', () => {
   // Generamos un JWT de assistant válido para las pruebas
