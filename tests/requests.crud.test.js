@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+/* eslint-disable no-undef */
+import { describe, it, expect, beforeAll } from 'vitest'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
 import app from '../index.js'

@@ -3,6 +3,10 @@ import request from 'supertest'
 import app from '../index.js'
 import jwt from 'jsonwebtoken' 
 
+// Load environment variables from .env file if present
+import dotenv from 'dotenv'
+dotenv.config()
+
 describe('Requests API - autorización', () => {
   it('GET /api/requests sin cookie debe responder 401 (no autenticado)', async () => {
     const res = await request(app).get('/api/requests')
