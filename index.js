@@ -18,6 +18,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
 app.use(cors({ origin: true, credentials: true })); // importante para cookies
+app.use('/api/auth', authRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
