@@ -1,0 +1,45 @@
+
+@baseUrl = http://127.0.0.1:3001
+@assist = 1111
+@admin = admin-1234
+
+### Salud
+GET {{baseUrl}}/api/health
+
+### Listar productos (asistente)
+GET {{baseUrl}}/api/products?q=cloro
+x-assist-code: {{assist}}
+
+### Crear producto (asistente)
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+x-assist-code: {{assist}}
+
+{
+  "name": "Bolsas de basura 95L",
+  "brand": "Genérico",
+  "presentation": "10 unid",
+  "unit": "paquete",
+  "category": "Cocina"
+}
+
+### Crear solicitud (asistente)
+POST {{baseUrl}}/api/requests
+Content-Type: application/json
+x-assist-code: {{assist}}
+
+{
+  "requester": "María",
+  "items": [
+    { "productId": 1, "quantity": 2, "unit": "botella", "notes": "Lavanda" },
+    { "name": "Guantes de limpieza talla M", "quantity": 1, "unit": "par" }
+  ]
+}
+
+### Listar solicitudes (admin)
+GET {{baseUrl}}/api/requests
+x-admin-code: {{admin}}
+
+### Descargar JSON (admin)
+GET {{baseUrl}}/api/requests/export
+x-admin-code: {{admin}}
