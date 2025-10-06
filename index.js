@@ -34,9 +34,10 @@ app.use('/api', requestsRouter);
 
 const port = process.env.PORT || 3001;
 app.listen(port, () => console.log(`API lista en http://0.0.0.0:${port}`));
-export default app;
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`API lista en http://0.0.0.0:${PORT}`);
   });
 }
+export default app;
+
