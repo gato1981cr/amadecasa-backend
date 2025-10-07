@@ -6,3 +6,10 @@ build/
 coverage/
 npm-debug.log*
 .DS_Store
+# Secrets
+.env
+.env.*
+http-client*.env.json
+*.pem
+*.key
+*.sql
