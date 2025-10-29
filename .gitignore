@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+
+# Entornos / deps
+.venv/
+env/
+venv/
+pip-wheel-metadata/
+*.egg-info/
+dist/
+build/
+
+# Config / secretos
+.env
+*.env
+.env.*
+secrets/
+*.key
+*.pem
+
+# Tests / tooling
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# IDE / editor
+.vscode/
+.idea/
+.history/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker / runtime
+pgdata/
+logs/
+*.log
+
+# FastAPI docs cache (si generas)
+.openapi.json
